@@ -28,7 +28,7 @@
                                     </div>
                                     <div class="col-sm-6 pl-sm-0 pr-sm-3">
                                         <div class="form-group mb-2">
-                                            <label>Wholesaler Email<span class="text-danger"></span></label> 
+                                            <label>Wholesaler Email<span class="text-danger">*</span></label> 
                                             <input type="email" placeholder="Enter Wholesaler Email"
                                                 name="wholesaler_email" id=""
                                                 value="{{ old('wholesaler_email', $vendor->email) }}" class="form-control">
@@ -61,22 +61,48 @@
                                             @enderror
                                         </div>
                                     </div>
-                                <div class="row mx-0 px-4">
-                                    <div class="col-sm-6 pl-sm-0 pr-sm-3">
-                                        <div class="form-group mb-2">
-                                            <label for="overcharged">Overcharged</label>
-                                            <!-- Hidden input to hold the status -->
-                                            <input type="hidden" name="overcharged" value="0"
-                                                id="overcharged_status">
-                                            <!-- Checkbox to toggle status -->
-                                            <input type="checkbox" id="overcharged"
-                                                {{ $vendor->overcharged_prices ? 'checked' : '' }}>
-                                            @error('overcharged')
-                                                <div class="text-danger">{{ $message }}</div>
-                                            @enderror
+
+                                    @php
+                                        $exists = App\Models\Vendor::where('over_charged_by', auth()->id())->where('id', $vendor->id)
+                                        ->where('overcharged_prices', 1)->first();
+                                        $notExists = App\Models\Vendor::where('over_charged_by', null)->where('id', $vendor->id)
+                                        ->where('overcharged_prices', 0)->first();
+                                    @endphp
+                                    @if ($exists)
+                                        <div class="row mx-0 px-4">
+                                            <div class="col-sm-6 pl-sm-0 pr-sm-3">
+                                                <div class="form-group mb-2">
+                                                    <label for="overcharged">Overcharged</label>
+                                                    <!-- Hidden input to hold the status -->
+                                                    <input type="hidden" name="overcharged" value="0"
+                                                        id="overcharged_status">
+                                                    <!-- Checkbox to toggle status -->
+                                                    <input type="checkbox" id="overcharged"
+                                                        {{ $vendor->overcharged_prices ? 'checked' : '' }}>
+                                                    @error('overcharged')
+                                                        <div class="text-danger">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    @endif
+                                    @if ($notExists)
+                                        <div class="row mx-0 px-4">
+                                            <div class="col-sm-6 pl-sm-0 pr-sm-3">
+                                                <div class="form-group mb-2">
+                                                    <label for="overcharged">Overcharged</label>
+                                                    <!-- Hidden input to hold the status -->
+                                                    <input type="hidden" name="overcharged" value="0"
+                                                        id="overcharged_status">
+                                                    <!-- Checkbox to toggle status -->
+                                                    <input type="checkbox" id="overcharged">
+                                                    @error('overcharged')
+                                                        <div class="text-danger">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                     <!-- Other fields with old() function added for value persistence -->
 
                                    

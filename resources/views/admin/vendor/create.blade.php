@@ -25,7 +25,7 @@
                                     </div>
                                     <div class="col-sm-6 pl-sm-0 pr-sm-3">
                                         <div class="form-group mb-2">
-                                            <label>Wholesaler Email<span class="text-danger"></span></label>
+                                            <label>Wholesaler Email<span class="text-danger">*</span></label>
                                             <input type="email" placeholder="Enter Wholesaler Email" name="wholesaler_email"
                                                 id="wholesaler_email" value="{{ old('wholesaler_email') }}" class="form-control">
                                             @error('wholesaler_email')

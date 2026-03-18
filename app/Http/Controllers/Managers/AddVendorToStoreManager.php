@@ -50,6 +50,7 @@ class AddVendorToStoreManager extends Controller
             }
         ])
         ->where('store_id', $StoreId->store_id)
+        ->has('vendor')
         ->orderBy('id', 'DESC')
         ->get();
 
@@ -74,6 +75,7 @@ class AddVendorToStoreManager extends Controller
 
     public function store(Request $request)
     {
+        $authId = Auth::guard('web')->id();
 
         // Validate the request data
         $request->validate([
@@ -85,7 +87,8 @@ class AddVendorToStoreManager extends Controller
             // 'salesman_name' => 'required',
             // 'salesman_phone_number' => 'required',
             'sales_manager_name' => 'required|string|max:255',
-            'sales_manager_email' => 'nullable|email|unique:store_has_sales_managers,sales_manager_email',
+            // 'sales_manager_email' => 'nullable|email|unique:store_has_sales_managers,sales_manager_email', 
+            
             'sales_manager_phone_no' => 'required|string|max:20',
             'order_frequency' => 'required',
             'delivery_frequency' => 'required',
@@ -113,13 +116,16 @@ class AddVendorToStoreManager extends Controller
 
         // Create a new Vendor record
         $vendor = Vendor::where('email', $request->wholesaler_email)->first();
+            // return $vendor;
         if($vendor) {
-            $vendor->email = $request->wholesaler_email;
+            // $vendor->email = $request->wholesaler_email;
             $vendor->vendor_name = $request->wholesaler_name;
             $vendor->phone_no = $request->wholesaler_phone_number;
             $vendor->save();
         }
         else {
+            return 'no';
+
             $vendor = Vendor::create([
                 'vendor_name' => $request->wholesaler_name,
                 'email' => $request->wholesaler_email,
@@ -127,7 +133,7 @@ class AddVendorToStoreManager extends Controller
             ]);
         }
 
-        $general_discount = StoreVendorGenralDiscount::create([
+        $general_discount_data = StoreVendorGenralDiscount::create([
             'store_manager_id' => $authId,
             'store_id' => $request->store_id,
             'vendor_id' => $vendor->id,
@@ -259,6 +265,7 @@ class AddVendorToStoreManager extends Controller
             'email' => $request->wholesaler_email,
             'phone_no' => $request->wholesaler_phone_number,
             'overcharged_prices' => $request->overcharged,
+            'over_charged_by' => $request->overcharged ? $authId : null
         ]);
         $general_discount = StoreVendorGenralDiscount::updateOrCreate(
             [

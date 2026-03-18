@@ -31,6 +31,7 @@
                                                 {{-- <th>Image</th> --}}
                                                 <th>Store Managers</th>
                                                 <th>Overcharged Price</th>
+                                                <th>Overcharged By</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -67,10 +68,20 @@
                                                     </td>
                                                     <td>
                                                         @if ($vendor->overcharged_prices == 1)
-                                                            <input type="checkbox" checked readonly>
+                                                            <input type="checkbox" checked disabled>
                                                         @else
-                                                            <input type="checkbox">
+                                                            <input type="checkbox" disabled>
                                                         @endif
+                                                    </td>
+                                                    <td>
+                                                        @php
+                                                            $email = App\Models\User::where('id', $vendor->over_charged_by)->first();
+                                                        @endphp
+                                                        @if($email && $email->email)
+                                                            <a href="mailto:{{ $email->email }}">{{ $email->email }}</a>
+                                                            @else
+                                                                N/A
+                                                            @endif
                                                     </td>
                                                     <td>
                                                         <div class="d-flex gap-4">

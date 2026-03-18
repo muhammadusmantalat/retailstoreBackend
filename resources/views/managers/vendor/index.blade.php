@@ -49,22 +49,21 @@
                                         @foreach ($vendors as $vendor)
                                             <tr>
                                                 <td>{{ $loop->iteration }}</td>
-                                                <td>{{ $vendor->vendor->vendor_name }}</td>
-                                                {{-- <td>{{ $vendor->vendor_email }}</td> --}}
+                                                <td>{{ $vendor->vendor?->vendor_name }}</td>
                                                 <td>
-                                                    @if ($vendor->vendor->email)
-                                                        <a
-                                                            href="mailto:{{ $vendor->vendor->email }}">{{ $vendor->vendor->email }}</a>
+                                                    @if ($vendor->vendor?->email)
+                                                        <a href="mailto:{{ $vendor->vendor->email }}">
+                                                            {{ $vendor->vendor->email }}
+                                                        </a>
                                                     @endif
                                                 </td>
-                                                <td>{{ $vendor->vendor->phone_no }}</td>
+
+                                                <td>{{ $vendor->vendor?->phone_no }}</td>
+
                                                 <td>
-                                                    @if ($vendor->vendor->overcharged_prices == 1)
-                                                        {{-- <input type="checkbox" checked> --}}
-                                                        <input type="checkbox" checked class="non-editable-checkbox">
-                                                    @else
-                                                        <input type="checkbox">
-                                                    @endif
+                                                    <input type="checkbox"
+                                                        class="non-editable-checkbox"
+                                                        {{ $vendor->vendor?->overcharged_prices == 1 ? 'checked' : '' }} disabled>
                                                 </td>
                                                 <td>{{ optional(optional($vendor->vendor)->discount)->general_discount ?? 'Not Set' }}</td>
                                                 <td>{{ optional(optional($vendor->vendor)->salesMen)->sales_manager_name ?? 'Not Set' }}</td>

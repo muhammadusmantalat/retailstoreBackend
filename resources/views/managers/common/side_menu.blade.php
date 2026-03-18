@@ -17,9 +17,9 @@
                         data-feather="layers"></i><span>Departments</span></a>
             </li>
              
-            <li class="dropdown {{ request()->is('manager/storeSaleManager*') ? 'active' : '' }}">
+            {{-- <li class="dropdown {{ request()->is('manager/storeSaleManager*') ? 'active' : '' }}">
                 <a href="{{ route('manager.storeSaleManager.index') }}" class="nav-link"><i data-feather="users"></i><span>Salesmen</span></a>
-            </li>
+            </li> --}}
             <li class="dropdown {{ request()->is('manager/storeManagerVendor*') ? 'active' : '' }}">
                 <a href="{{ route('manager.storeManagerVendor') }}" class="nav-link"><i data-feather="users"></i><span>Wholesalers</span></a>
             </li>

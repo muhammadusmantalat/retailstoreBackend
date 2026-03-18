@@ -8,6 +8,7 @@ use App\Models\Orders;
 use App\Models\Vendor;
 use App\Models\Product;
 use App\Models\OrderItem;
+use App\Models\StoreHasSalesManager;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Mail\VendorOrderInvoiceMail;
@@ -127,7 +128,7 @@ class OrderController extends Controller
     //         return response()->json(['message' => 'Failed to create order', 'error' => $e->getMessage()], 500);
     //     }
     // }
-
+ 
     public function store(Request $request)
     {
         // return $request;
@@ -217,6 +218,7 @@ class OrderController extends Controller
                 $vendor = Vendor::find($request->vendor_id);
                 $vendorEmail = $vendor ? $vendor->email : null;
 
+                $salesManagerData = StoreHasSalesManager::where('store_manager_id', $storeManager->id)->where('whole_seller_id', $vendor->id)->where('store_id', $request->store_id)->first();
                 // // Check if emails are found
                 // if (!$storeManagerEmail || !$vendorEmail) {
                 //     return response()->json([
@@ -236,9 +238,17 @@ class OrderController extends Controller
                 // Send the invoice email to the store manager
                 Mail::to($storeManagerEmail)->send(new ManagerOrderInvoiceMail($emailData));
                 // return $order;
-
+                if ($vendorEmail != null && $salesManagerData->sales_manager_email != null) {
+                    Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));
+                    Mail::to($salesManagerData->sales_manager_email)->send(new VendorOrderInvoiceMail($emailData));
+                }elseif($vendorEmail != null && $salesManagerData->sales_manager_email == null) {
+                     Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));  
+                }elseif($vendorEmail == null && $salesManagerData->sales_manager_email != null) {
+                    Mail::to($salesManagerData->sales_manager_email)->send(new VendorOrderInvoiceMail($emailData));
+                }
+                
                 // Send the invoice email to the vendor
-                Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));
+                // Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));
                 // return $vendorEmail;
             }
 

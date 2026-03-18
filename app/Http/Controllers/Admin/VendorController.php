@@ -42,7 +42,7 @@ class VendorController extends Controller
         // return $request;
         $request->validate([
             'wholesaler_name' => 'required',
-            'wholesaler_email' => 'nullable|email|unique:vendors,email|max:255', // Use the unique rule directly
+            'wholesaler_email' => 'required|email|unique:vendors,email|max:255', // Use the unique rule directly
             'wholesaler_phone_number' => 'required',
             // 'order_days' => 'required',
             // 'delivery_days' => 'required',
@@ -106,7 +106,7 @@ class VendorController extends Controller
             // 'storeManager_id' => 'required',
             'Wholesaler_name' => 'required',
             'wholesaler_email' => [
-                'nullable',
+                'required',
                 'email',
                 Rule::unique('vendors', 'email')->ignore($vendors->id), // Ignore the current user's email
                 'max:255'
