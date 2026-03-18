@@ -1,0 +1,24 @@
+[19-Oct-2024 06:28:22 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php on line 18
+[18-Feb-2025 09:34:04 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php on line 18
+[19-Feb-2025 09:06:44 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/services.php on line 18
+[19-Feb-2025 09:07:13 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/services.php on line 18
+[30-Nov-2025 20:37:48 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/database.php on line 18
+[30-Nov-2025 20:37:49 America/Chicago] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home3/fsrfnhte/management.retailstoresolution.com/config/app.php:16
+Stack trace:
+#0 {main}
+  thrown in /home3/fsrfnhte/management.retailstoresolution.com/config/app.php on line 16

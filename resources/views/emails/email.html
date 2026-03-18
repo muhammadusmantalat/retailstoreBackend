@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header img {
+            max-width: 150px;
+        }
+
+        .details {
+            display: flex;
+            justify-content: space-between !important;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .details .left,
+        .details .right {
+            width: 50%;
+            font-size: 16px;
+            color: #265e9a;
+        }
+
+        .details .right{
+            text-align: end
+        }
+
+        .details p {
+            margin: 0;
+        }
+
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 10px 0;
+            color: #265e9a;
+        }
+
+        .description-box {
+            background-color: #f1f5fb;
+            border-left: 4px solid #265e9a;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .buttons a {
+            display: inline-block;
+            padding: 12px 20px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #007bff;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 0 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .buttons a:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="header">
+            <img src="{{ asset('public/admin/assets/images/logo.png') }}" alt="Logo">
+        </div>
+
+        <!-- Store Manager and Store Name -->
+        <div style="justify-content: space-between" class="details">
+            <div class="left">
+                <p><strong>Store Manager:</strong> {{ $storeManagerName }}</p>
+            </div>
+            <div class="right">
+                <p><strong>Store Name:</strong> {{ $storeName }}</p>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p>Dear {{ $vendorName }},</p>
+            <p>This is to inform you that the store manager has initiated an audit and found that you have been charging
+                <strong>overcharged prices</strong>.</p>
+
+            <div class="description-box">
+                @if ($description)
+                    <p><strong>Additional Details Provided:</strong></p>
+                    <p>{{ $description }}</p>
+                @else
+                    <p><strong>No additional details were provided at this time.</strong></p>
+                @endif
+            </div>
+
+            <p>If you have any questions or need further clarification, please contact the store manager directly.</p>
+        </div>
+
+        <!-- Buttons for Receipts -->
+        <div class="buttons">
+            <a href="{{ asset($storeManagerRecepit) }}">View Store Manager Receipt</a>
+            <a href="{{ asset($vendorRecepit) }}">View Vendor Receipt</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Best regards,</p>
+            <p>The {{ config('app.name') }} Team</p>
+        </div>
+    </div>
+</body>
+
+</html>
