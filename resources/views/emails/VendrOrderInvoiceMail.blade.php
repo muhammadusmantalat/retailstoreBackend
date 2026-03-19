@@ -32,6 +32,9 @@
     <tr>
         <td><strong>Wholesaler Name:</strong> {{ $emailData['order']->vendor_name }}</td>
     </tr>
+   <tr>
+        <td><strong>Salesmen Name:</strong> {{ $emailData['sales_manager_name'] ?? '' }}</td>
+    </tr>
 </table>
 
 <table width="100%" cellspacing="0" cellpadding="10" style="margin-top: 20px; border-collapse: collapse;">

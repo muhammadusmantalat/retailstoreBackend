@@ -230,6 +230,8 @@ class OrderController extends Controller
                 $emailData = [
                     'order' => $order,
                     'productDetails' => $productDetails,  // Pass discount and price-after-discount details
+                    'sales_manager_name' => $salesManagerData->sales_manager_name,  // Pass discount and price-after-discount details
+
                 ];
 
                 // return $emailData;
@@ -910,7 +912,7 @@ class OrderController extends Controller
             // Fetch the last two completed orders for the specified store manager, store, and vendor
             $lastTwoOrders = Orders::where('store_manager_id', $storeManagerId)
                 ->where('store_id', $storeId)
-                ->where('status', 'completed')
+                ->where('status', 'In-Progress')
                 ->orderBy('created_at', 'desc')
                 ->limit(2)
                 ->with('orderItem')
