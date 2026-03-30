@@ -15,6 +15,8 @@ use App\Mail\VendorOrderInvoiceMail;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ManagerOrderInvoiceMail;
 use App\Models\ProductAssignToVendor;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -129,136 +131,170 @@ class OrderController extends Controller
     //     }
     // }
  
-    public function store(Request $request)
-    {
-        // return $request;
+   public function store(Request $request)
+{
+    DB::beginTransaction();
+
+    try {
+
+        // ✅ Validation
+        $request->validate([
+            'store_manager_id' => 'required|exists:users,id',
+            'vendor_id' => 'required|exists:vendors,id',
+            'store_id' => 'required',
+            'products' => 'required'
+        ]);
+
+        // ✅ Format Date
         try {
-            // Format the date
-            $date = $request->date;
-            $formattedDate = Carbon::createFromFormat('d-m-Y', $date)->format('d-m-y');
+            $formattedDate = Carbon::createFromFormat('d-m-Y', $request->date)->format('d-m-y');
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid date format'
+            ], 422);
+        }
 
-            // Create the order
-            $order = Orders::create([        
-                'store_manager_id' => $request->store_manager_id,
-                'store_id' => $request->store_id,      
-                'vendor_id' => $request->vendor_id,
-                'total_quantity' => $request->total_quantity,
-                'total_price' => $request->total_price,
-                'invoice_number' => $request->invoice_number,
-                'status' => $request->status,
-                'store_manager_name' => $request->store_manager_name,
-                'store_name' => $request->store_name,
-                'vendor_name' => $request->vendor_name,
-                'date' => $formattedDate,
-                'order_code' => $this->generateUniqueProductId(),
-                'store_address' => $request->store_address,
-                'store_phone_no' => $request->store_phone_no,
-            ]); 
+        // ✅ Create Order
+        $order = Orders::create([
+            'store_manager_id' => $request->store_manager_id,
+            'store_id' => $request->store_id,
+            'vendor_id' => $request->vendor_id,
+            'total_quantity' => $request->total_quantity,
+            'total_price' => $request->total_price,
+            'invoice_number' => $request->invoice_number,
+            'status' => $request->status,
+            'store_manager_name' => $request->store_manager_name,
+            'store_name' => $request->store_name,
+            'vendor_name' => $request->vendor_name,
+            'date' => $formattedDate,
+            'order_code' => $this->generateUniqueProductId(),
+            'store_address' => $request->store_address,
+            'store_phone_no' => $request->store_phone_no,
+        ]);
 
-            // return $request;
+        // ✅ Decode Products
+        $products = json_decode($request->products, true);
 
-            // Ensure products is an array
-            $products = json_decode($request->products, true);
-            if (!$products || !is_array($products)) {
+        if (!$products || !is_array($products)) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or missing products data',
+            ], 422);
+        }
+
+        $productDetails = [];
+
+        foreach ($products as $product) {
+
+            $productData = Product::select('id', 'product_name', 'price')
+                ->find($product['product_id']);
+
+            if (!$productData) {
+                DB::rollBack();
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid or missing products data',
-                ]);
+                    'message' => 'Product not found'
+                ], 404);
             }
 
-            $productDetails = [];
-            foreach ($products as $product) {
-                $productData = Product::select('id', 'product_name', 'price')
-                    ->where('id', $product['product_id'])
-                    ->firstOrFail()
-                    ->toArray();
+            $discount = $product['discount'] ?? 0;
 
-                // return  $priceAfterDiscount;
+            $subTotal = $product['quantity'] * $product['price'];
+            $discountAmount = ($discount / 100) * $subTotal;
+            $subTotalAfterDiscount = $subTotal - $discountAmount;
 
-                $discountPercentage = isset($product['discount']) ? $product['discount'] : 0;
+            $productDetails[] = [
+                'product_id' => $productData->id,
+                'product_name' => $productData->product_name,
+                'quantity' => $product['quantity'],
+                'price' => $product['price'],
+                'discount_price' => $discount,
+                'sub_total' => $subTotal,
+                'sub_total_after_discount' => $subTotalAfterDiscount,
+                'image' => $product['image'],
+                'discount_amount' => $discountAmount
+            ];
 
-                $subTotal = $product['quantity'] * $product['price'];
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product['product_id'],
+                'quantity' => $product['quantity'],
+                'price' => $product['price'],
+                'discount_price' => $discount,
+                'product_name' => $productData->product_name,
+                'image' => $product['image'],
+                'sub_total' => $subTotal,
+                'priceAfterDiscount' => $subTotalAfterDiscount,
+                'discount_amount' => $discountAmount
+            ]);
+        }
 
-                $discountAmount = ($discountPercentage / 100) * $subTotal;
+        // ✅ Commit DB
+        DB::commit();
 
-                $subTotalAfterDiscount = $subTotal - $discountAmount;
-
-                $productDetails[] = [
-                    'product_id' => $productData['id'],
-                    'product_name' => $productData['product_name'],
-                    'quantity' => $product['quantity'],
-                    'price' => $product['price'],
-                    'discount_price' => $product['discount'],
-                    'sub_total' =>  $subTotal,
-                    'sub_total_after_discount' => $subTotalAfterDiscount,
-                    'image' => $product['image'],
-                    'discount_amount' => $discountAmount
-                ];
-
-
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product['product_id'],
-                    'quantity' => $product['quantity'],
-                    'price' => $product['price'],
-                    'discount_price' => $product['discount'],
-                    'product_name' => $productData['product_name'],
-                    'image' => $product['image'],
-                    'sub_total' => $subTotal,
-                    'priceAfterDiscount' =>  $subTotalAfterDiscount,
-                    'discount_amount' => $discountAmount
-                ]);
-            }
-
-            // Check status before sending emails
+        // ✅ Send Emails (Safe Block)
+        try {
             if ($request->status !== 'pending') {
+
                 $storeManager = User::find($request->store_manager_id);
-                $storeManagerEmail = $storeManager ? $storeManager->email : null;
-
                 $vendor = Vendor::find($request->vendor_id);
-                $vendorEmail = $vendor ? $vendor->email : null;
 
-                $salesManagerData = StoreHasSalesManager::where('store_manager_id', $storeManager->id)->where('whole_seller_id', $vendor->id)->where('store_id', $request->store_id)->first();
-                // // Check if emails are found
-                // if (!$storeManagerEmail || !$vendorEmail) {
-                //     return response()->json([
-                //         'status' => 'error',
-                //         'message' => 'Store Manager or Vendor email not found',
-                //     ]);
-                // }
+                $salesManagerData = StoreHasSalesManager::where([
+                    'store_manager_id' => $storeManager->id ?? null,
+                    'whole_seller_id' => $vendor->id ?? null,
+                    'store_id' => $request->store_id
+                ])->first();
 
                 $emailData = [
                     'order' => $order,
-                    'productDetails' => $productDetails,  // Pass discount and price-after-discount details
-                    'sales_manager_name' => $salesManagerData->sales_manager_name,  // Pass discount and price-after-discount details
-
+                    'productDetails' => $productDetails,
+                    'sales_manager_name' => $salesManagerData->sales_manager_name ?? null,
                 ];
 
-                // return $emailData;
+                if (!empty($storeManager->email)) {
+                    Mail::to($storeManager->email)->send(new ManagerOrderInvoiceMail($emailData));
+                }
 
+                if (!empty($vendor->email)) {
+                    Mail::to($vendor->email)->send(new VendorOrderInvoiceMail($emailData));
+                }
 
-                // Send the invoice email to the store manager
-                Mail::to($storeManagerEmail)->send(new ManagerOrderInvoiceMail($emailData));
-                // return $order;
-                if ($vendorEmail != null && $salesManagerData->sales_manager_email != null) {
-                    Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));
-                    Mail::to($salesManagerData->sales_manager_email)->send(new VendorOrderInvoiceMail($emailData));
-                }elseif($vendorEmail != null && $salesManagerData->sales_manager_email == null) {
-                     Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));  
-                }elseif($vendorEmail == null && $salesManagerData->sales_manager_email != null) {
+                if (!empty($salesManagerData->sales_manager_email)) {
                     Mail::to($salesManagerData->sales_manager_email)->send(new VendorOrderInvoiceMail($emailData));
                 }
-                
-                // Send the invoice email to the vendor
-                // Mail::to($vendorEmail)->send(new VendorOrderInvoiceMail($emailData));
-                // return $vendorEmail;
             }
 
-            return response()->json(['message' => 'Order created successfully', 'order' => $order]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to create order', 'error' => $e->getMessage()], 500);
+        } catch (\Exception $mailException) {
+            Log::error('Mail Error', [
+                'message' => $mailException->getMessage()
+            ]);
         }
+
+        // ✅ Success Response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Order created successfully',
+            'data' => $order
+        ]);
+
+    } catch (\Exception $e) {
+
+        DB::rollBack();
+
+        Log::error('Order Create Error', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile()
+        ]);
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Something went wrong while creating order'
+        ], 500);
     }
+}
 
 
 
@@ -905,87 +941,186 @@ class OrderController extends Controller
     // }
 
 
+    //    
+    // public function getRecommendedProduct($storeManagerId, $storeId, $vendorId)
+    // {
+    //     try {
+    //         // Fetch the last two completed orders for the specified store manager, store, and vendor
+    //         $lastTwoOrders = Orders::where('store_manager_id', $storeManagerId)
+    //             ->where('store_id', $storeId)
+    //             ->where('status', 'In-Progress')
+    //             ->orderBy('created_at', 'desc')
+    //             ->limit(2)
+    //             ->with('orderItem')
+    //             ->get();
+
+    //         // Initialize arrays for storing product IDs and quantities
+    //         $orderedProductIds = [];
+    //         $productQuantities = [];
+
+    //         // If there are completed orders
+    //         if ($lastTwoOrders->isNotEmpty()) {
+    //             foreach ($lastTwoOrders as $order) {
+    //                 foreach ($order->orderItem as $orderItem) {
+    //                     $productId = $orderItem->product_id;
+    //                     $orderedProductIds[] = $productId;
+    //                     // Collect quantities of each product
+    //                     if (!isset($productQuantities[$productId])) {
+    //                         $productQuantities[$productId] = [];
+    //                     }
+    //                     $productQuantities[$productId][] = $orderItem->quantity;
+    //                 }
+    //             }
+    //             // return $productQuantities;
+    //             // Calculate recommended quantities based on last two orders
+    //             $recommendedQuantities = [];
+    //             foreach ($productQuantities as $productId => $quantities) {
+    //                 $totalQuantity = array_sum($quantities);
+    //                 $totalOrders = count($quantities);
+    //                 $recommendedQuantities[$productId] = ($totalOrders > 0) ? ceil($totalQuantity / $totalOrders) : 0;
+    //             }
+
+    //             // Fetch products assigned to the current vendor
+    //             $productsAssigned = ProductAssignToVendor::with('product.productImage', 'vendor')
+    //                 ->where('store_manager_id', $storeManagerId)
+    //                 ->where('store_id', $storeId)
+    //                 ->where('vendor_id', $vendorId)
+    //                 ->whereIn('product_id', $orderedProductIds)
+    //                 ->get();
+
+    //             if ($productsAssigned->isEmpty()) {
+    //                 // No assigned products for current vendor, show a message
+    //                 return response()->json([
+    //                     'status' => 'info',
+    //                     'message' => 'No recommended product available for this vendor',
+    //                 ]);
+    //             } else {
+    //                 // Attach recommended quantities to products assigned to the current vendor
+    //                 $productsAssigned->each(function ($product) use ($recommendedQuantities) {
+    //                     if (isset($recommendedQuantities[$product->product_id])) {
+    //                         $product->recommended_quantity = $recommendedQuantities[$product->product_id];
+    //                     } else {
+    //                         $product->recommended_quantity = 0; // Or handle as needed if not recommended
+    //                     }
+    //                 });
+
+    //                 // Return the products with recommended quantities
+    //                 return response()->json([
+    //                     'status' => 'success',
+    //                     'products' => $productsAssigned,
+    //                 ]);
+    //             }
+    //         } else {
+    //             // No completed orders found
+    //             return response()->json([
+    //                 'status' => 'info',
+    //                 'message' => 'No completed orders found for recommendations.',
+    //             ]);
+    //         }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
     public function getRecommendedProduct($storeManagerId, $storeId, $vendorId)
-    {
-        try {
-            // Fetch the last two completed orders for the specified store manager, store, and vendor
-            $lastTwoOrders = Orders::where('store_manager_id', $storeManagerId)
-                ->where('store_id', $storeId)
-                ->where('status', 'In-Progress')
-                ->orderBy('created_at', 'desc')
-                ->limit(2)
-                ->with('orderItem')
-                ->get();
+{
+    try {
+        // 1. Get ALL In-Progress Orders
+        $allOrders = Orders::where('store_manager_id', $storeManagerId)
+            ->where('store_id', $storeId)
+            ->where('status', 'In-Progress')
+            ->orderBy('created_at', 'desc')
+            ->with('orderItem')
+            ->get();
 
-            // Initialize arrays for storing product IDs and quantities
-            $orderedProductIds = [];
-            $productQuantities = [];
-
-            // If there are completed orders
-            if ($lastTwoOrders->isNotEmpty()) {
-                foreach ($lastTwoOrders as $order) {
-                    foreach ($order->orderItem as $orderItem) {
-                        $productId = $orderItem->product_id;
-                        $orderedProductIds[] = $productId;
-                        // Collect quantities of each product
-                        if (!isset($productQuantities[$productId])) {
-                            $productQuantities[$productId] = [];
-                        }
-                        $productQuantities[$productId][] = $orderItem->quantity;
-                    }
-                }
-                // return $productQuantities;
-                // Calculate recommended quantities based on last two orders
-                $recommendedQuantities = [];
-                foreach ($productQuantities as $productId => $quantities) {
-                    $totalQuantity = array_sum($quantities);
-                    $totalOrders = count($quantities);
-                    $recommendedQuantities[$productId] = ($totalOrders > 0) ? ceil($totalQuantity / $totalOrders) : 0;
-                }
-
-                // Fetch products assigned to the current vendor
-                $productsAssigned = ProductAssignToVendor::with('product.productImage', 'vendor')
-                    ->where('store_manager_id', $storeManagerId)
-                    ->where('store_id', $storeId)
-                    ->where('vendor_id', $vendorId)
-                    ->whereIn('product_id', $orderedProductIds)
-                    ->get();
-
-                if ($productsAssigned->isEmpty()) {
-                    // No assigned products for current vendor, show a message
-                    return response()->json([
-                        'status' => 'info',
-                        'message' => 'No recommended product available for this vendor',
-                    ]);
-                } else {
-                    // Attach recommended quantities to products assigned to the current vendor
-                    $productsAssigned->each(function ($product) use ($recommendedQuantities) {
-                        if (isset($recommendedQuantities[$product->product_id])) {
-                            $product->recommended_quantity = $recommendedQuantities[$product->product_id];
-                        } else {
-                            $product->recommended_quantity = 0; // Or handle as needed if not recommended
-                        }
-                    });
-
-                    // Return the products with recommended quantities
-                    return response()->json([
-                        'status' => 'success',
-                        'products' => $productsAssigned,
-                    ]);
-                }
-            } else {
-                // No completed orders found
-                return response()->json([
-                    'status' => 'info',
-                    'message' => 'No completed orders found for recommendations.',
-                ]);
-            }
-        } catch (\Exception $e) {
+        if ($allOrders->isEmpty()) {
             return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], 500);
+                'status' => 'info',
+                'message' => 'No in-progress orders found.',
+            ]);
         }
+
+        // 2. Get LAST 2 orders for recommendation
+        $lastTwoOrders = $allOrders->take(2);
+
+        $orderedProductIds = [];
+        $productQuantities = [];
+
+        // 3. Collect product data ONLY from last 2 orders
+        foreach ($lastTwoOrders as $order) {
+            foreach ($order->orderItem as $orderItem) {
+                $productId = $orderItem->product_id;
+
+                $orderedProductIds[] = $productId;
+
+                if (!isset($productQuantities[$productId])) {
+                    $productQuantities[$productId] = [];
+                }
+
+                $productQuantities[$productId][] = $orderItem->quantity;
+            }
+        }
+
+        // 4. Calculate recommended quantities (ONLY last 2 orders)
+        $recommendedQuantities = [];
+        foreach ($productQuantities as $productId => $quantities) {
+            $totalQuantity = array_sum($quantities);
+            $totalOrders = count($quantities);
+
+            $recommendedQuantities[$productId] = ($totalOrders > 0)
+                ? ceil($totalQuantity / $totalOrders)
+                : 0;
+        }
+
+        // 5. Get ALL products from ALL orders
+        $allProductIds = [];
+        foreach ($allOrders as $order) {
+            foreach ($order->orderItem as $orderItem) {
+                $allProductIds[] = $orderItem->product_id;
+            }
+        }
+
+        $allProductIds = array_unique($allProductIds);
+
+        // 6. Fetch assigned products
+        $productsAssigned = ProductAssignToVendor::with('product.productImage', 'vendor')
+            ->where('store_manager_id', $storeManagerId)
+            ->where('store_id', $storeId)
+            ->where('vendor_id', $vendorId)
+            ->whereIn('product_id', $allProductIds)
+            ->get();
+
+        if ($productsAssigned->isEmpty()) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'No products assigned to this vendor',
+            ]);
+        }
+
+        // 7. Attach recommended quantities
+        $productsAssigned->each(function ($product) use ($recommendedQuantities) {
+            if (isset($recommendedQuantities[$product->product_id])) {
+                // From last 2 orders
+                $product->recommended_quantity = $recommendedQuantities[$product->product_id];
+            } else {
+                // From older orders
+                $product->recommended_quantity = 0;
+            }
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'products' => $productsAssigned,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
 }
