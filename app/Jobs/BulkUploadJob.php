@@ -80,7 +80,7 @@ class BulkUploadJob implements ShouldQueue
                                 'department_name' => $department_name,
                                 'tax_status' => $tax_status_value,
                             ]);
-
+                            
                             // Assign vendor to department and product handling
                             $assignVendor = AssignVendor::firstOrCreate([
                                 'store_manager_id' =>  $this->authId,
@@ -99,14 +99,17 @@ class BulkUploadJob implements ShouldQueue
 
                             // Product assignment
                             if ($product_name && $upc_ipc && $price) {
-                                $product = Product::firstOrCreate([
-                                    'upc_ipc' => $upc_ipc,
-                                    'store_manager_id' => $this->authId,
-                                    'store_id' => $this->storeId,
-                                ], [
-                                    'product_name' => $product_name,
-                                    'price' => $price,
-                                ]);
+                                $product = Product::updateOrCreate(
+                                    [
+                                        'upc_ipc' => $upc_ipc,
+                                        'store_manager_id' => $this->authId,
+                                        'store_id' => $this->storeId,
+                                    ],
+                                    [
+                                        'product_name' => $product_name,
+                                        'price' => $price,
+                                    ]
+                                );
 
                                 if ($product) {
                                     // Other product assignments
