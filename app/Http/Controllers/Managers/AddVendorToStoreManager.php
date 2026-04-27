@@ -124,7 +124,7 @@ class AddVendorToStoreManager extends Controller
             $vendor->save();
         }
         else {
-            return 'no';
+            // return 'no';
 
             $vendor = Vendor::create([
                 'vendor_name' => $request->wholesaler_name,
