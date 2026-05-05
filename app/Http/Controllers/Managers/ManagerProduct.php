@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use App\Models\Product;
 use App\Models\Department;
 use App\Jobs\BulkUploadJob;
+use App\Models\BulkUpload;
 use App\Models\AssignVendor;
 use Illuminate\Http\Request;
 use App\Models\ProductAssign;
@@ -583,20 +584,70 @@ class ManagerProduct extends Controller
     // }
 
 
+    // public function bulkUpload(Request $request)
+    // {
+    //     try {
+    //         // Get the store manager's ID and the associated store ID
+    //         $authId = Auth::guard('web')->id();
+    //         $StoreId = StoreManagerStoreDepartment::where('store_manager_id', $authId)->first();
+    //         $storeId = $StoreId->store_id;
+
+    //         // Validate the file (optional, uncomment if needed)
+    //         // $request->validate([
+    //         //     'file' => 'required|mimes:csv'
+    //         // ]);
+
+    //         // Check if the file is present
+    //         if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'Invalid file uploaded.',
+    //             ], 400);
+    //         }
+
+    //         // Get the file and read its contents
+    //         $file = $request->file('file');
+    //         $csvData = file_get_contents($file);
+    //         $rows = array_map('str_getcsv', explode("\n", $csvData));
+    //         $rows = array_filter($rows);
+
+    //         // Remove the header row
+    //         array_shift($rows);
+
+    //         // Chunk the rows to avoid too many jobs in the queue at once
+    //         $chunkSize = 500; // Process in chunks of 500 rows
+    //         $chunks = array_chunk($rows, $chunkSize);
+
+    //         // Dispatch the bulk upload job for each chunk
+    //         foreach ($chunks as $chunk) {
+    //             BulkUploadJob::dispatch($chunk, $storeId, $authId);
+    //         }
+
+    //         return response()->json([
+    //             'success' => 'success',
+    //             'message' => 'Products upload is being processed.',
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         // Catch any exceptions and return an error response
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'An error occurred during the upload process: ' . $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
+
     public function bulkUpload(Request $request)
     {
         try {
-            // Get the store manager's ID and the associated store ID
+
             $authId = Auth::guard('web')->id();
+
             $StoreId = StoreManagerStoreDepartment::where('store_manager_id', $authId)->first();
             $storeId = $StoreId->store_id;
 
-            // Validate the file (optional, uncomment if needed)
-            // $request->validate([
-            //     'file' => 'required|mimes:csv'
-            // ]);
-
-            // Check if the file is present
             if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
                 return response()->json([
                     'status' => 'error',
@@ -604,36 +655,55 @@ class ManagerProduct extends Controller
                 ], 400);
             }
 
-            // Get the file and read its contents
             $file = $request->file('file');
             $csvData = file_get_contents($file);
             $rows = array_map('str_getcsv', explode("\n", $csvData));
             $rows = array_filter($rows);
 
-            // Remove the header row
             array_shift($rows);
 
-            // Chunk the rows to avoid too many jobs in the queue at once
-            $chunkSize = 500; // Process in chunks of 500 rows
+            // ✅ CREATE TRACKING ENTRY
+            $upload = BulkUpload::create([
+                'store_manager_id' => $authId,
+                'store_id' => $storeId,
+                'total_records' => count($rows),
+                'processed_records' => 0,
+                'failed_records' => 0,
+                'status' => 'processing'
+            ]);
+
+            $chunkSize = 500;
             $chunks = array_chunk($rows, $chunkSize);
 
-            // Dispatch the bulk upload job for each chunk
             foreach ($chunks as $chunk) {
-                BulkUploadJob::dispatch($chunk, $storeId, $authId);
+                BulkUploadJob::dispatch($chunk, $storeId, $authId, $upload->id);
             }
 
             return response()->json([
-                'success' => 'success',
-                'message' => 'Products upload is being processed.',
+                'success' => true,
+                'upload_id' => $upload->id,
+                'message' => 'Products upload started.'
             ]);
 
         } catch (\Exception $e) {
-            // Catch any exceptions and return an error response
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred during the upload process: ' . $e->getMessage(),
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
+    public function bulkUploadProgress($id)
+    {
+        $upload = BulkUpload::find($id);
+
+        return response()->json([
+            'processed' => $upload->processed_records,
+            'total' => $upload->total_records,
+            'failed' => $upload->failed_records,
+            'status' => $upload->status
+        ]);
+    }
+    
 
 }

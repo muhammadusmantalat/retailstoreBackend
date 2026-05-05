@@ -319,7 +319,7 @@ Route::group(['prefix' => 'manager', 'namespace' => 'App\Http\Controllers\Manage
     // routes/web.php
     Route::post('/storeManagerProducts/bulk-upload', [ManagerProduct::class, 'bulkUpload'])->name('products-bulkUpload');
     Route::get('/storeManagerProducts-upload', [ManagerProduct::class, 'uploadForm'])->name('products-uploadForm');
-
+    Route::get('/bulk-upload-progress/{id}', [ManagerProduct::class, 'bulkUploadProgress'])->name('bulk-upload-progress');
 
     /**  store manager side product assiging to departments routes */
     Route::get('/storeManagerProductsDepartments/{id}', [ProductDepartmentController::class, 'index'])->name('ProductsDepartments');

@@ -13,7 +13,7 @@
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pr-0 pt-3">
                                         <div class="card-content">
                                             <h5 class="font-15">Total Stores</h5>
-                                            <h2 class="mb-3 font-18">{{ $stores->count() }}</h2>
+                                            <h2 class="mb-3 font-18">{{ $storesCount }}</h2>
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pl-0">
@@ -34,7 +34,7 @@
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pr-0 pt-3">
                                         <div class="card-content">
                                             <h5 class="font-15"> Total Store Managers</h5>
-                                            <h2 class="mb-3 font-18">{{ $store_managrs->count() }}</h2>
+                                            <h2 class="mb-3 font-18">{{ $storeManagersCount }}</h2>
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pl-0">
@@ -55,7 +55,7 @@
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pr-0 pt-3">
                                         <div class="card-content">
                                             <h5 class="font-15">Total Products</h5>
-                                            <h2 class="mb-3 font-18">{{$products->count()}}</h2>
+                                            <h2 class="mb-3 font-18">{{ $productsCount }}</h2>
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 pl-0">

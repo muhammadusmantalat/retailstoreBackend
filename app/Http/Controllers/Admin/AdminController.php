@@ -18,11 +18,12 @@ class AdminController extends Controller
 {
     //
     public function getdashboard(){
-        $stores = Store::all();
-        $store_managrs = User::where('user_type','store_Manager')->get();
-        $products = Product::all();
-        // return $products;
-        return view('admin.index',compact('stores','store_managrs','products'));
+    $storesCount = Store::count();
+    $storeManagersCount = User::where('user_type','store_Manager')->count();
+    $productsCount = Product::count();
+    // $productsCount = 0;
+    // return [$storesCount,$storeManagersCount,$productsCount];
+        return view('admin.index', compact('storesCount','storeManagersCount','productsCount'));
     }
     public function getProfile(){
         $data=Admin::find(Auth::guard('admin')->id());
