@@ -49,8 +49,8 @@ class WholesalerController extends Controller
                 ->where('store_id', $storeId)
                 ->with('vendor')
                 ->distinct('vendor_id') // Ensure unique vendors by vendor_id
-                ->get();
-
+                ->get(); 
+  
             if ($vendors->isEmpty()) {
                 return response()->json(['message' => 'No vendors found for this store manager ID and store ID']);
             }
@@ -235,14 +235,20 @@ class WholesalerController extends Controller
 
     public function products($vendorId, $id, $storeManagerId, $storeId)
     {
-        try {
+        try { 
             // Fetch products assigned to the given store manager ID and vendor
+
+            // return Department::where('store_manager_id', $storeManagerId)->where('store_id', $storeId)->first();
             $products = ProductAssignToVendor::select('department_id', 'product_id', 'vendor_id', 'product_price')
                 ->where('store_manager_id', $storeManagerId)
                 ->where('store_id', $storeId)
                 ->where('department_id', $id)
                 ->where('vendor_id', $vendorId)
-                ->with('product.productImage', 'vendor') // Eager load the vendor relationship
+                 ->with([
+                    'product.productImage',
+                    'vendor.salesMen',
+                    'vendor.discount'
+                ]) // Eager load the vendor relationship
                 ->get();
 
             if ($products->isEmpty()) {
@@ -278,20 +284,21 @@ class WholesalerController extends Controller
                 // Check if the product is a hot seller
                 $hotSelling = $totalSoldQuantity > $quantityThreshold->quantity;
 
-                return [
+                return [     
                     'department_id' => $product->department_id,
                     'product_id' => $product->product_id,
                     'vendor_id' => $product->vendor_id,
                     'vendor_name' => $product->vendor ? $product->vendor->vendor_name : null,
-                    'discount' => $product->vendor ? $product->vendor->general_discount : null,
+                    // 'discount' => $product->vendor ? $product->vendor->general_discount : null,
+                    'discount' => optional($product->vendor->discount)->general_discount ?? 0,
                     'product_price' => $product->product_price,
                     'product' => $product->product,
                     'is_in_wishlist' => $isInWishlist,
                     'total_sold_quantity' => $totalSoldQuantity, // Include total sold quantity
                     'hot_selling' => $hotSelling,
-                ];
-            });
-
+                ];     
+            });   
+                                                               
             return response()->json([
                 'status' => 'success',
                 'message' => 'Products fetched successfully',

@@ -1026,101 +1026,101 @@ class OrderController extends Controller
     // }
 
     public function getRecommendedProduct($storeManagerId, $storeId, $vendorId)
-{
-    try {
-        // 1. Get ALL In-Progress Orders
-        $allOrders = Orders::where('store_manager_id', $storeManagerId)
-            ->where('store_id', $storeId)
-            ->where('status', 'In-Progress')
-            ->orderBy('created_at', 'desc')
-            ->with('orderItem')
-            ->get();
+    {
+        try {
+            // 1. Get ALL In-Progress Orders
+            $allOrders = Orders::where('store_manager_id', $storeManagerId)
+                ->where('store_id', $storeId)
+                // ->where('status', 'In-Progress')
+                ->orderBy('created_at', 'desc')
+                ->with('orderItem')
+                ->get();
 
-        if ($allOrders->isEmpty()) {
-            return response()->json([
-                'status' => 'info',
-                'message' => 'No in-progress orders found.',
-            ]);
-        }
+            if ($allOrders->isEmpty()) {
+                return response()->json([
+                    'status' => 'info',
+                    'message' => 'No orders found.',
+                ]);
+            }
 
-        // 2. Get LAST 2 orders for recommendation
-        $lastTwoOrders = $allOrders->take(2);
+            // 2. Get LAST 2 orders for recommendation
+            $lastTwoOrders = $allOrders->take(2);
 
-        $orderedProductIds = [];
-        $productQuantities = [];
+            $orderedProductIds = [];
+            $productQuantities = [];
 
-        // 3. Collect product data ONLY from last 2 orders
-        foreach ($lastTwoOrders as $order) {
-            foreach ($order->orderItem as $orderItem) {
-                $productId = $orderItem->product_id;
+            // 3. Collect product data ONLY from last 2 orders
+            foreach ($lastTwoOrders as $order) {
+                foreach ($order->orderItem as $orderItem) {
+                    $productId = $orderItem->product_id;
 
-                $orderedProductIds[] = $productId;
+                    $orderedProductIds[] = $productId;
 
-                if (!isset($productQuantities[$productId])) {
-                    $productQuantities[$productId] = [];
+                    if (!isset($productQuantities[$productId])) {
+                        $productQuantities[$productId] = [];
+                    }
+
+                    $productQuantities[$productId][] = $orderItem->quantity;
                 }
-
-                $productQuantities[$productId][] = $orderItem->quantity;
             }
-        }
 
-        // 4. Calculate recommended quantities (ONLY last 2 orders)
-        $recommendedQuantities = [];
-        foreach ($productQuantities as $productId => $quantities) {
-            $totalQuantity = array_sum($quantities);
-            $totalOrders = count($quantities);
+            // 4. Calculate recommended quantities (ONLY last 2 orders)
+            $recommendedQuantities = [];
+            foreach ($productQuantities as $productId => $quantities) {
+                $totalQuantity = array_sum($quantities);
+                $totalOrders = count($quantities);
 
-            $recommendedQuantities[$productId] = ($totalOrders > 0)
-                ? ceil($totalQuantity / $totalOrders)
-                : 0;
-        }
-
-        // 5. Get ALL products from ALL orders
-        $allProductIds = [];
-        foreach ($allOrders as $order) {
-            foreach ($order->orderItem as $orderItem) {
-                $allProductIds[] = $orderItem->product_id;
+                $recommendedQuantities[$productId] = ($totalOrders > 0)
+                    ? ceil($totalQuantity / $totalOrders)
+                    : 0;
             }
-        }
 
-        $allProductIds = array_unique($allProductIds);
+            // 5. Get ALL products from ALL orders
+            $allProductIds = [];
+            foreach ($allOrders as $order) {
+                foreach ($order->orderItem as $orderItem) {
+                    $allProductIds[] = $orderItem->product_id;
+                }
+            }
 
-        // 6. Fetch assigned products
-        $productsAssigned = ProductAssignToVendor::with('product.productImage', 'vendor')
-            ->where('store_manager_id', $storeManagerId)
-            ->where('store_id', $storeId)
-            ->where('vendor_id', $vendorId)
-            ->whereIn('product_id', $allProductIds)
-            ->get();
+            $allProductIds = array_unique($allProductIds);
 
-        if ($productsAssigned->isEmpty()) {
+            // 6. Fetch assigned products
+            $productsAssigned = ProductAssignToVendor::with('product.productImage', 'vendor')
+                ->where('store_manager_id', $storeManagerId)
+                ->where('store_id', $storeId)
+                ->where('vendor_id', $vendorId)
+                ->whereIn('product_id', $allProductIds)
+                ->get();
+
+            if ($productsAssigned->isEmpty()) {
+                return response()->json([
+                    'status' => 'info',
+                    'message' => 'No products assigned to this vendor',
+                ]);
+            }
+
+            // 7. Attach recommended quantities
+            $productsAssigned->each(function ($product) use ($recommendedQuantities) {
+                if (isset($recommendedQuantities[$product->product_id])) {
+                    // From last 2 orders
+                    $product->recommended_quantity = $recommendedQuantities[$product->product_id];
+                } else {
+                    // From older orders
+                    $product->recommended_quantity = 0;
+                }
+            });
+
             return response()->json([
-                'status' => 'info',
-                'message' => 'No products assigned to this vendor',
+                'status' => 'success',
+                'products' => $productsAssigned,
             ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        // 7. Attach recommended quantities
-        $productsAssigned->each(function ($product) use ($recommendedQuantities) {
-            if (isset($recommendedQuantities[$product->product_id])) {
-                // From last 2 orders
-                $product->recommended_quantity = $recommendedQuantities[$product->product_id];
-            } else {
-                // From older orders
-                $product->recommended_quantity = 0;
-            }
-        });
-
-        return response()->json([
-            'status' => 'success',
-            'products' => $productsAssigned,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ], 500);
     }
-}
 }

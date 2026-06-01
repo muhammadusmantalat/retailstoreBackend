@@ -19,7 +19,7 @@ class BannerController extends Controller
             'banners' => $banners
         ]);
     }
-
+ 
     public function logo()
     {
         $logo = Logo::all(); // Sare logos ko fetch karne ke liye

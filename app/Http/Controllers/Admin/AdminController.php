@@ -42,7 +42,7 @@ class AdminController extends Controller
         ]);
         $data = $request->only(['name', 'email', 'phone']);
 
-        return $request;
+        // return $request;
         // Check if an image was uploaded
         if ($request->hasFile('image')) {
             $file = $request->file('image');
